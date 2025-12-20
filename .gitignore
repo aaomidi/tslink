@@ -1,0 +1,29 @@
+# Binaries (at root only)
+/tslink
+*.exe
+
+# Plugin build artifacts
+docker/rootfs/
+
+# Go
+*.test
+*.out
+coverage.txt
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Tailscale state (for local testing)
+*.state
+*.sock
+
+# Environment files with secrets
+.env
+.env.*

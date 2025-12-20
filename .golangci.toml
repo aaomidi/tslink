@@ -1,0 +1,93 @@
+version = "2"
+
+[formatters]
+enable = ["gci"]
+
+[formatters.settings.gci]
+sections = ["standard", "default", "prefix(github.com/aaomidi/tslink)"]
+custom-order = true
+
+[linters]
+default = "standard"
+enable = [
+  # Bug detection (critical for networking)
+  "bodyclose",     # HTTP response bodies closed (Docker API)
+  "errorlint",     # proper error wrapping
+  "nilerr",        # nil error with invalid value
+  "nilnil",        # simultaneous nil error + invalid value
+  "durationcheck", # two durations multiplied together
+
+  # Context (critical for process management)
+  "contextcheck", # correct context usage
+  "fatcontext",   # nested contexts in loops
+  "noctx",        # HTTP requests without context
+
+  # Code quality
+  "cyclop",      # cyclomatic complexity
+  "dupl",        # code clones
+  "goconst",     # repeated strings
+  "gocritic",    # bugs, perf, style
+  "unconvert",   # unnecessary conversions
+  "unparam",     # unused params
+  "wastedassign", # wasted assignments
+
+  # Modern Go (1.22+)
+  "intrange",    # integer ranges
+  "copyloopvar", # loop variable issues
+  "modernize",   # suggests modern Go idioms
+
+  # Style
+  "godot",      # comments end in period
+  "nakedret",   # naked returns
+  "nolintlint", # proper nolint directives
+]
+
+[linters.settings.cyclop]
+max-complexity = 30
+package-average = 10.0
+
+[linters.settings.errcheck]
+check-type-assertions = true
+
+[linters.settings.govet]
+enable-all = true
+disable = ["fieldalignment", "shadow"]
+
+[linters.settings.nakedret]
+max-func-lines = 0
+
+[linters.settings.nolintlint]
+require-explanation = true
+require-specific = true
+
+[linters.exclusions]
+presets = ["std-error-handling", "common-false-positives"]
+
+[[linters.exclusions.rules]]
+source = "TODO"
+linters = ["godot"]
+
+[[linters.exclusions.rules]]
+path = "_test\\.go"
+linters = [
+  "bodyclose",
+  "dupl",
+  "errcheck",
+  "goconst",
+  "gosec",
+  "noctx",
+]
+
+# Exclude noctx for utility packages where context isn't readily available
+[[linters.exclusions.rules]]
+path = "pkg/netutil/"
+linters = ["noctx"]
+
+[[linters.exclusions.rules]]
+path = "pkg/diag/"
+linters = ["noctx"]
+
+[[linters.exclusions.rules]]
+path = "pkg/tailscale/binary\\.go"
+linters = ["noctx"]
+

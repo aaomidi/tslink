@@ -1,0 +1,99 @@
+{
+  "description": "Tailscale network plugin - per-container identity",
+  "documentation": "https://github.com/aaomidi/tslink",
+  "entrypoint": ["/tslink"],
+  "interface": {
+    "types": ["docker.networkdriver/1.0"],
+    "socket": "tailscale.sock"
+  },
+  "network": {
+    "type": "host"
+  },
+  "linux": {
+    "capabilities": ["CAP_NET_ADMIN", "CAP_SYS_ADMIN"],
+    "allowAllDevices": true,
+    "devices": [
+      {
+        "name": "tun",
+        "description": "TUN device for Tailscale",
+        "path": "/dev/net/tun",
+        "type": "c",
+        "major": 10,
+        "minor": 200
+      }
+    ]
+  },
+  "mounts": [
+    {
+      "name": "tsdata",
+      "description": "Tailscale state directory",
+      "source": "/var/lib/docker-plugins/tailscale",
+      "destination": "/data",
+      "type": "bind",
+      "options": ["rbind", "rw"]
+    },
+    {
+      "name": "netns",
+      "description": "Docker network namespaces",
+      "source": "/var/run/docker/netns",
+      "destination": "/var/run/docker/netns",
+      "type": "bind",
+      "options": ["rbind", "rw"]
+    },
+    {
+      "name": "run",
+      "description": "Host run directory for nsenter",
+      "source": "/run",
+      "destination": "/run",
+      "type": "bind",
+      "options": ["rbind", "rslave"]
+    },
+    {
+      "name": "dockersock",
+      "description": "Docker socket for container inspection",
+      "source": "/var/run/docker.sock",
+      "destination": "/var/run/docker.sock",
+      "type": "bind",
+      "options": ["bind", "rw"]
+    },
+    {
+      "name": "devnet",
+      "description": "TUN device for Tailscale networking",
+      "source": "/dev/net",
+      "destination": "/dev/net",
+      "type": "bind",
+      "options": ["rbind", "rw"]
+    }
+  ],
+  "env": [
+    {
+      "name": "TS_AUTHKEY",
+      "description": "Tailscale auth key (can also use --opt ts.authkey when creating network)",
+      "settable": ["value"],
+      "value": ""
+    },
+    {
+      "name": "TS_DATA_DIR",
+      "description": "Directory for Tailscale state",
+      "value": "/data"
+    },
+    {
+      "name": "TS_VERSION",
+      "description": "Tailscale version to use (default: latest)",
+      "settable": ["value"],
+      "value": "latest"
+    },
+    {
+      "name": "TS_PATH",
+      "description": "Path to custom Tailscale binaries (optional, overrides TS_VERSION)",
+      "settable": ["value"],
+      "value": ""
+    },
+    {
+      "name": "DOCKER_HOST",
+      "description": "Docker socket path",
+      "value": "unix:///var/run/docker.sock"
+    }
+  ],
+  "propagatedMount": "/data"
+}
