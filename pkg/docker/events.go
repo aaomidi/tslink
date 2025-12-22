@@ -119,10 +119,10 @@ func WatchEvents(ctx context.Context, cache *ContainerCache, networkDriverName s
 		case msg := <-result.Messages:
 			// Log all network events for debugging
 			networkType := msg.Actor.Attributes["type"]
-			logger.Debug("Event received: type=%s driver=%s (want=%s)", msg.Action, networkType, networkDriverName)
+			logger.Debug("Event received: type=%s driver=%s (want prefix=%s)", msg.Action, networkType, networkDriverName)
 
-			// Only process events for our network driver
-			if networkType != networkDriverName {
+			// Only process events for our network driver (match by prefix to handle any tag)
+			if !strings.HasPrefix(networkType, networkDriverName) {
 				continue
 			}
 

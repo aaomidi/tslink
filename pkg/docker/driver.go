@@ -31,8 +31,8 @@ type Driver struct {
 	wg     sync.WaitGroup
 }
 
-// NetworkDriverName is the name used to identify our network driver.
-const NetworkDriverName = "ghcr.io/aaomidi/tslink:latest"
+// NetworkDriverName is the base name used to identify our network driver (without tag).
+const NetworkDriverName = "ghcr.io/aaomidi/tslink"
 
 // watchdogInterval is the interval at which the watchdog checks for orphaned endpoints.
 const watchdogInterval = 60 * time.Second
@@ -471,7 +471,7 @@ func (d *Driver) RecoverEndpoints(ctx context.Context) error {
 				continue
 			}
 
-			if networkResult.Network.Driver != NetworkDriverName {
+			if !strings.HasPrefix(networkResult.Network.Driver, NetworkDriverName) {
 				continue
 			}
 

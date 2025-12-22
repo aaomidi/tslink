@@ -41,6 +41,11 @@ When you create a Docker network with this plugin and run containers on it:
 
 ### Install the Plugin
 
+```bash
+# Create the data directory (required)
+sudo mkdir -p /var/lib/docker-plugins/tailscale
+```
+
 Docker plugins require architecture-specific tags:
 
 ```bash
