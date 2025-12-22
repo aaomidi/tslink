@@ -10,10 +10,12 @@
 #   docker-compose -f docker-compose-services.yml up -d
 #
 # The service will be accessible at the TailVIP assigned in the admin console.
+#
+# Note: Use :latest-arm64 or :latest-amd64 depending on your system
 
 networks:
   tailnet:
-    driver: ghcr.io/aaomidi/tslink:latest
+    driver: ghcr.io/aaomidi/tslink:latest-arm64
     driver_opts:
       ts.authkey: ${TS_AUTHKEY}
 

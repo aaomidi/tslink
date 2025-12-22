@@ -16,10 +16,12 @@
 # The service will be accessible via HTTPS at the TailVIP assigned in the
 # admin console. Tailscale terminates TLS and forwards to the container's
 # plain HTTP port 80.
+#
+# Note: Use :latest-arm64 or :latest-amd64 depending on your system
 
 networks:
   tailnet:
-    driver: ghcr.io/aaomidi/tslink:latest
+    driver: ghcr.io/aaomidi/tslink:latest-arm64
     driver_opts:
       ts.authkey: ${TS_AUTHKEY}
 
