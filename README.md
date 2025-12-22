@@ -41,15 +41,20 @@ When you create a Docker network with this plugin and run containers on it:
 
 ### Install the Plugin
 
+Docker plugins require architecture-specific tags:
+
 ```bash
-# Install latest stable release
-docker plugin install ghcr.io/aaomidi/tslink:latest
+# For amd64 (Intel/AMD, most cloud VMs)
+docker plugin install ghcr.io/aaomidi/tslink:latest-amd64
+
+# For arm64 (Apple Silicon, AWS Graviton, Raspberry Pi)
+docker plugin install ghcr.io/aaomidi/tslink:latest-arm64
 
 # Or install a specific version
-docker plugin install ghcr.io/aaomidi/tslink:v0.0.1
+docker plugin install ghcr.io/aaomidi/tslink:v0.0.1-amd64
 
 # Or follow main branch (latest development)
-docker plugin install ghcr.io/aaomidi/tslink:main
+docker plugin install ghcr.io/aaomidi/tslink:main-amd64
 
 # The plugin will be enabled automatically
 docker plugin ls
@@ -61,14 +66,15 @@ docker plugin ls
 
 ```bash
 # With auth key in command (ephemeral nodes by default)
+# Replace :latest-amd64 with :latest-arm64 for ARM systems
 docker network create \
-  --driver ghcr.io/aaomidi/tslink:latest \
+  --driver ghcr.io/aaomidi/tslink:latest-amd64 \
   --opt ts.authkey=tskey-auth-xxxxx \
   my-tailnet
 
 # Or set the auth key globally when installing the plugin
-docker plugin set ghcr.io/aaomidi/tslink:latest TS_AUTHKEY=tskey-auth-xxxxx
-docker network create --driver ghcr.io/aaomidi/tslink:latest my-tailnet
+docker plugin set ghcr.io/aaomidi/tslink:latest-amd64 TS_AUTHKEY=tskey-auth-xxxxx
+docker network create --driver ghcr.io/aaomidi/tslink:latest-amd64 my-tailnet
 ```
 
 ### Run Containers
@@ -96,11 +102,10 @@ curl http://web.your-tailnet.ts.net
 ### Example: Docker Compose
 
 ```yaml
-version: '3.8'
-
+# Use :latest-amd64 or :latest-arm64 depending on your system
 networks:
   tailnet:
-    driver: ghcr.io/aaomidi/tslink:latest
+    driver: ghcr.io/aaomidi/tslink:latest-amd64
     driver_opts:
       ts.authkey: ${TS_AUTHKEY}
 
@@ -155,13 +160,13 @@ docker run -d --network my-tailnet \
 Instead of passing the auth key with each network, set it as a plugin environment variable:
 
 ```bash
-# Set default auth key
-docker plugin disable ghcr.io/aaomidi/tslink:latest
-docker plugin set ghcr.io/aaomidi/tslink:latest TS_AUTHKEY=tskey-auth-xxxxx
-docker plugin enable ghcr.io/aaomidi/tslink:latest
+# Set default auth key (use :latest-arm64 for ARM systems)
+docker plugin disable ghcr.io/aaomidi/tslink:latest-amd64
+docker plugin set ghcr.io/aaomidi/tslink:latest-amd64 TS_AUTHKEY=tskey-auth-xxxxx
+docker plugin enable ghcr.io/aaomidi/tslink:latest-amd64
 
 # Now create networks without specifying the auth key
-docker network create --driver ghcr.io/aaomidi/tslink:latest my-tailnet
+docker network create --driver ghcr.io/aaomidi/tslink:latest-amd64 my-tailnet
 ```
 
 ## Auth Key Types
