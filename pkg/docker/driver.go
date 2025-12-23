@@ -31,11 +31,23 @@ type Driver struct {
 	wg     sync.WaitGroup
 }
 
-// NetworkDriverName is the name used to identify our network driver.
-const NetworkDriverName = "ghcr.io/aaomidi/tslink:latest"
+// NetworkDriverName is the base name used to identify our network driver (without tag).
+const NetworkDriverName = "ghcr.io/aaomidi/tslink"
 
 // watchdogInterval is the interval at which the watchdog checks for orphaned endpoints.
 const watchdogInterval = 60 * time.Second
+
+// redactKey returns a redacted version of a key for safe logging.
+// Shows the prefix (e.g., "tskey-auth-") and first few chars, redacts the rest.
+func redactKey(key string) string {
+	if key == "" {
+		return "(empty)"
+	}
+	if len(key) <= 16 {
+		return "(redacted)"
+	}
+	return key[:16] + "..."
+}
 
 // NewDriver creates a new Docker network driver.
 func NewDriver() (*Driver, error) {
@@ -161,13 +173,13 @@ func (d *Driver) CreateNetwork(req *network.CreateNetworkRequest) error {
 	defer d.mu.Unlock()
 
 	opts := core.ParseNetworkOptions(req.Options)
-	logger.Info("Parsed opts: authkey=%q", opts.AuthKey)
+	logger.Debug("Parsed opts: authkey=%s", redactKey(opts.AuthKey))
 
 	// Merge auth key from options or use default from config
 	authKey := opts.AuthKey
 	if authKey == "" {
 		authKey = d.config.AuthKey
-		logger.Info("Using config authkey: %q", authKey)
+		logger.Debug("Using default authkey from config: %s", redactKey(authKey))
 	}
 	if authKey == "" {
 		return fmt.Errorf("no Tailscale auth key provided: set TS_AUTHKEY env var or use --opt ts.authkey=xxx")
@@ -471,7 +483,7 @@ func (d *Driver) RecoverEndpoints(ctx context.Context) error {
 				continue
 			}
 
-			if networkResult.Network.Driver != NetworkDriverName {
+			if !strings.HasPrefix(networkResult.Network.Driver, NetworkDriverName) {
 				continue
 			}
 

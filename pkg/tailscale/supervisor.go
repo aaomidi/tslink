@@ -3,8 +3,7 @@ package tailscale
 import (
 	"context"
 	"fmt"
-	"math"
-	"math/rand"
+	"math/rand/v2"
 	"os"
 	"sync"
 	"time"
@@ -27,7 +26,6 @@ const (
 const (
 	initialBackoff = 100 * time.Millisecond
 	maxBackoff     = 30 * time.Second
-	backoffFactor  = 2.0
 
 	// Crash loop detection: 5 crashes in 30 seconds.
 	crashLoopWindow    = 30 * time.Second
@@ -160,7 +158,7 @@ func (s *DaemonSupervisor) signalStartup(err error) {
 
 // applyStartupJitter adds random delay to prevent thundering herd on mass restart.
 func (s *DaemonSupervisor) applyStartupJitter() {
-	jitter := time.Duration(rand.Int63n(int64(maxStartupJitter)))
+	jitter := time.Duration(rand.Int64N(int64(maxStartupJitter)))
 	if jitter > 0 {
 		logger.Debug("Applying startup jitter: %v", jitter)
 		time.Sleep(jitter)
@@ -375,7 +373,8 @@ func (s *DaemonSupervisor) nextBackoff() time.Duration {
 		return initialBackoff
 	}
 
-	delay := time.Duration(float64(initialBackoff) * math.Pow(backoffFactor, float64(s.backoffAttempt)))
+	// Exponential backoff: initialBackoff * 2^attempt
+	delay := initialBackoff << s.backoffAttempt
 	s.backoffAttempt++
 	return min(delay, maxBackoff)
 }

@@ -1,67 +1,33 @@
-# Example: Tailscale Services with load-balanced backends
+# Example: Load-balanced backends with Tailscale Services
+#
+# Tailscale Services provide a stable VIP that load-balances across backends.
+# Each backend registers itself with the service automatically.
 #
 # Prerequisites:
-# 1. Create a service named "hello-world" in Tailscale admin console
-#    (https://login.tailscale.com/admin/services)
-# 2. Set TS_AUTHKEY to a tag-based auth key (tags are required for services)
+#   1. Create a service named "my-app" in Tailscale admin console:
+#      https://login.tailscale.com/admin/services
+#   2. Use a tag-based auth key (required for services)
 #
 # Usage:
 #   export TS_AUTHKEY=tskey-auth-xxx
 #   docker-compose -f docker-compose-services.yml up -d
+#   docker-compose -f docker-compose-services.yml up -d --scale backend=3
 #
-# The service will be accessible at the TailVIP assigned in the admin console.
+# Access via the TailVIP assigned in the admin console.
 #
-# Note: Use :latest-arm64 or :latest-amd64 depending on your system
+# Note: Use :main-arm64 or :main-amd64 depending on your architecture
 
 networks:
   tailnet:
-    driver: ghcr.io/aaomidi/tslink:latest-arm64
+    driver: ghcr.io/aaomidi/tslink:main-arm64
     driver_opts:
       ts.authkey: ${TS_AUTHKEY}
 
 services:
-  # Backend 1 - registers as hello-world service backend
-  backend-1:
+  backend:
     image: nginx:alpine
     networks:
       - tailnet
     labels:
-      ts.hostname: "hello-backend-1"
-      ts.service: "svc:hello-world"
-      # New format: ts.serve.<external-port>=<proto>:<target-port>
-      ts.serve.80: "http:80"
-
-  # Backend 2 - another instance of the same service
-  backend-2:
-    image: nginx:alpine
-    networks:
-      - tailnet
-    labels:
-      ts.hostname: "hello-backend-2"
-      ts.service: "svc:hello-world"
-      ts.serve.80: "http:80"
-
-  # Client to test connectivity (not part of the service)
-  client:
-    image: alpine
-    networks:
-      - tailnet
-    labels:
-      ts.hostname: "test-client"
-    command: |
-      sh -c "
-        echo 'Waiting for Tailscale to connect...'
-        sleep 30
-        echo ''
-        echo 'My Tailscale IP:'
-        ip addr show | grep 100.
-        echo ''
-        echo 'You can now test the service from this container or any Tailscale client:'
-        echo '  curl http://<service-tailvip>'
-        echo ''
-        echo 'Sleeping to keep container alive...'
-        sleep 3600
-      "
-    depends_on:
-      - backend-1
-      - backend-2
+      ts.service: "svc:my-app"
+      ts.serve.443: "https:80"  # HTTPS on 443 -> container port 80

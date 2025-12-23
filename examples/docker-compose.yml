@@ -1,49 +1,25 @@
-# Example: Two services communicating over Tailscale
-# Each container gets its own Tailscale identity and can reach the other
+# Example: Web server with Tailscale Serve (HTTPS)
+#
+# This gives your container a Tailscale identity with automatic HTTPS.
+# Access via: https://web-server.<tailnet-name>.ts.net
 #
 # Usage:
 #   export TS_AUTHKEY=tskey-auth-xxx
 #   docker-compose up -d
 #
-# Note: Use :latest-arm64 or :latest-amd64 depending on your system
+# Note: Use :main-arm64 or :main-amd64 depending on your architecture
 
 networks:
   tailnet:
-    driver: ghcr.io/aaomidi/tslink:latest-arm64
+    driver: ghcr.io/aaomidi/tslink:main-arm64
     driver_opts:
       ts.authkey: ${TS_AUTHKEY}
 
 services:
-  # Simple web server
   web:
     image: nginx:alpine
     networks:
       - tailnet
     labels:
       ts.hostname: "web-server"
-    # No ports exposed - accessible only via Tailscale!
-
-  # Client that can reach the web server via Tailscale
-  client:
-    image: alpine
-    networks:
-      - tailnet
-    labels:
-      ts.hostname: "test-client"
-    command: |
-      sh -c "
-        echo 'Waiting for Tailscale to connect...'
-        sleep 20
-        echo 'My IP info:'
-        ip addr | grep inet
-        echo ''
-        echo 'Testing internet access:'
-        ping -c 2 8.8.8.8
-        echo ''
-        echo 'The web server should be reachable at its Tailscale IP or via MagicDNS:'
-        echo '  curl http://web-server'
-        echo ''
-        sleep 300
-      "
-    depends_on:
-      - web
+      ts.serve.443: "https:80"  # HTTPS on 443 -> container port 80
