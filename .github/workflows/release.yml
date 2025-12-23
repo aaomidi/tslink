@@ -80,8 +80,8 @@ jobs:
           docker plugin create ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${VERSION}-${{ matrix.arch }} docker/
           docker plugin push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${VERSION}-${{ matrix.arch }}
 
-          # Also push as latest-<arch>
+          # Also push as latest-<arch> (may fail if content identical, that's ok)
           docker plugin disable ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${VERSION}-${{ matrix.arch }} || true
           docker plugin rm ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest-${{ matrix.arch }} || true
           docker plugin create ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest-${{ matrix.arch }} docker/
-          docker plugin push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest-${{ matrix.arch }}
+          docker plugin push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest-${{ matrix.arch }} || true
