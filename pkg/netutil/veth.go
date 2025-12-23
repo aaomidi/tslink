@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"os"
 	"os/exec"
 	"runtime"
 	"sync"
@@ -11,6 +12,7 @@ import (
 
 	"github.com/vishvananda/netlink"
 	"github.com/vishvananda/netns"
+	"golang.org/x/sys/unix"
 
 	"github.com/aaomidi/tslink/pkg/logger"
 )
@@ -56,23 +58,68 @@ func CreateVethPair(baseName string) (string, string, error) {
 
 // MoveToNetNS moves a network interface to the specified network namespace.
 func MoveToNetNS(ifName string, nsPath string) error {
+	logger.Debug("MoveToNetNS: interface=%s nsPath=%s", ifName, nsPath)
+
+	// Validate the netns path exists and is accessible
+	fi, err := os.Lstat(nsPath)
+	if err != nil {
+		return fmt.Errorf("netns path %s: %w", nsPath, err)
+	}
+	logger.Debug("MoveToNetNS: path exists, mode=%s isSymlink=%v",
+		fi.Mode().String(), fi.Mode()&os.ModeSymlink != 0)
+
+	// If it's a symlink, resolve it
+	realPath := nsPath
+	if fi.Mode()&os.ModeSymlink != 0 {
+		realPath, err = os.Readlink(nsPath)
+		if err != nil {
+			return fmt.Errorf("failed to resolve symlink %s: %w", nsPath, err)
+		}
+		logger.Debug("MoveToNetNS: resolved symlink to %s", realPath)
+	}
+
+	// Get the interface
 	link, err := netlink.LinkByName(ifName)
 	if err != nil {
 		return fmt.Errorf("interface %s not found: %w", ifName, err)
 	}
+	logger.Debug("MoveToNetNS: found interface %s (index=%d, type=%s)",
+		ifName, link.Attrs().Index, link.Type())
 
-	ns, err := netns.GetFromPath(nsPath)
+	// Open the network namespace
+	ns, err := netns.GetFromPath(realPath)
 	if err != nil {
-		return fmt.Errorf("failed to get netns from %s: %w", nsPath, err)
+		return fmt.Errorf("failed to get netns from %s: %w", realPath, err)
 	}
 	defer ns.Close()
+	logger.Debug("MoveToNetNS: opened netns fd=%d", int(ns))
 
+	// Verify it's actually a network namespace by checking the fd type
+	var stat unix.Stat_t
+	if err := unix.Fstat(int(ns), &stat); err != nil {
+		logger.Warn("MoveToNetNS: fstat on netns fd failed: %v", err)
+	} else {
+		logger.Debug("MoveToNetNS: netns fd stat: mode=%o", stat.Mode)
+	}
+
+	// Move the interface to the namespace
 	if err := netlink.LinkSetNsFd(link, int(ns)); err != nil {
-		return fmt.Errorf("failed to move %s to netns: %w", ifName, err)
+		// Log additional debug info on failure
+		logger.Error("MoveToNetNS: LinkSetNsFd failed: interface=%s fd=%d err=%v",
+			ifName, int(ns), err)
+
+		// Check if the interface is still in the current namespace
+		if _, checkErr := netlink.LinkByName(ifName); checkErr != nil {
+			logger.Debug("MoveToNetNS: interface no longer in current namespace after error")
+		} else {
+			logger.Debug("MoveToNetNS: interface still in current namespace")
+		}
+
+		return fmt.Errorf("failed to move %s to netns (fd=%d, path=%s): %w",
+			ifName, int(ns), realPath, err)
 	}
 
 	logger.Debug("Moved interface %s to netns %s", ifName, nsPath)
-
 	return nil
 }
 
