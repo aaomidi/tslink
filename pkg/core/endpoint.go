@@ -219,6 +219,13 @@ func (e *Endpoint) StartTailscale(info *ContainerInfo) error {
 	// Compute state directory from hostname
 	stateDir := filepath.Join(dataDir, "by-hostname", info.Hostname)
 
+	// Check if auth key changed - if so, wipe state for fresh registration
+	if tailscale.StateExists(stateDir) && !tailscale.CheckAuthKeyMatch(stateDir, authKey) {
+		if err := tailscale.WipeState(stateDir); err != nil {
+			logger.Warn("Failed to wipe state after auth key change: %v", err)
+		}
+	}
+
 	logger.Info("StartTailscale: endpoint=%s hostname=%s service=%s endpoints=%d direct=%v",
 		endpointID[:12], info.Hostname, info.Service, len(info.Endpoints), info.Direct)
 
@@ -281,6 +288,11 @@ func (e *Endpoint) StartTailscale(info *ContainerInfo) error {
 			logger.Warn("failed to stop supervisor after WaitForIP error: %v", stopErr)
 		}
 		return fmt.Errorf("failed to get Tailscale IP: %w", err)
+	}
+
+	// Save auth key hash for future comparisons
+	if err := tailscale.SaveAuthKeyHash(stateDir, authKey); err != nil {
+		logger.Warn("Failed to save auth key hash: %v", err)
 	}
 
 	// Now lock briefly to store results

@@ -401,7 +401,16 @@ func (d *Daemon) tryBringUp() error {
 		args = append(args, "--advertise-tags="+tagsArg)
 	}
 
-	logger.Debug("Running: %s %v", d.config.TailscaleBin, args)
+	// Log with redacted authkey
+	redactedArgs := make([]string, len(args))
+	for i, arg := range args {
+		if strings.HasPrefix(arg, "--authkey=") {
+			redactedArgs[i] = "--authkey=(redacted)"
+		} else {
+			redactedArgs[i] = arg
+		}
+	}
+	logger.Debug("Running: %s %v", d.config.TailscaleBin, redactedArgs)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
