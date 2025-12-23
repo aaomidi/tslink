@@ -21,9 +21,11 @@ RUN apk add --no-cache \
     util-linux \
     ca-certificates
 
-# Use iptables-legacy for tailscaled compatibility (nft doesn't support --set-mark)
-RUN ln -sf /sbin/iptables-legacy /sbin/iptables && \
-    ln -sf /sbin/ip6tables-legacy /sbin/ip6tables
+# Use iptables-nft to match modern Docker (which uses iptables-nft on Ubuntu 24.04+).
+# This ensures our FORWARD/MASQUERADE rules go into the same tables Docker uses.
+# Tailscale bundles its own iptables runner that handles its own rules.
+RUN ln -sf /sbin/iptables-nft /sbin/iptables && \
+    ln -sf /sbin/ip6tables-nft /sbin/ip6tables
 
 # Create plugin directories
 RUN mkdir -p /run/docker/plugins /data /data/tailscale-bin

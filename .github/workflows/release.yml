@@ -63,25 +63,35 @@ jobs:
       - name: Push PR plugin
         if: github.event_name == 'pull_request'
         run: |
-          docker plugin create ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:pr-${{ github.event.pull_request.number }}-${{ matrix.arch }} docker/
-          docker plugin push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:pr-${{ github.event.pull_request.number }}-${{ matrix.arch }}
+          PLUGIN_NAME=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:pr-${{ github.event.pull_request.number }}-${{ matrix.arch }}
+          docker plugin create ${PLUGIN_NAME} docker/
+          docker plugin disable ${PLUGIN_NAME} || true
+          docker plugin push ${PLUGIN_NAME}
 
       - name: Push main plugin
         if: github.ref == 'refs/heads/main'
         run: |
-          docker plugin create ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:main-${{ matrix.arch }} docker/
-          docker plugin push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:main-${{ matrix.arch }}
+          PLUGIN_NAME=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:main-${{ matrix.arch }}
+          docker plugin create ${PLUGIN_NAME} docker/
+          docker plugin disable ${PLUGIN_NAME} || true
+          docker plugin push ${PLUGIN_NAME}
 
       - name: Push version plugin
         if: startsWith(github.ref, 'refs/tags/v')
         run: |
           VERSION=${GITHUB_REF#refs/tags/}
 
-          docker plugin create ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${VERSION}-${{ matrix.arch }} docker/
-          docker plugin push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${VERSION}-${{ matrix.arch }}
+          # Push version tag
+          VERSION_PLUGIN=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${VERSION}-${{ matrix.arch }}
+          docker plugin create ${VERSION_PLUGIN} docker/
+          docker plugin disable ${VERSION_PLUGIN} || true
+          docker plugin push ${VERSION_PLUGIN}
 
-          # Also push as latest-<arch> (may fail if content identical, that's ok)
-          docker plugin disable ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${VERSION}-${{ matrix.arch }} || true
-          docker plugin rm ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest-${{ matrix.arch }} || true
-          docker plugin create ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest-${{ matrix.arch }} docker/
-          docker plugin push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest-${{ matrix.arch }} || true
+          # Create latest tag with different content (add version marker to avoid "content already exists" error)
+          LATEST_PLUGIN=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest-${{ matrix.arch }}
+          echo "${VERSION}" > docker/rootfs/.plugin-version
+          docker plugin rm ${LATEST_PLUGIN} || true
+          docker plugin create ${LATEST_PLUGIN} docker/
+          docker plugin disable ${LATEST_PLUGIN} || true
+          docker plugin push ${LATEST_PLUGIN}
+          rm docker/rootfs/.plugin-version
