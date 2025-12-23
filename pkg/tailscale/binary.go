@@ -12,9 +12,10 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
-	"strconv"
 	"strings"
 	"sync"
+
+	"github.com/Masterminds/semver/v3"
 
 	"github.com/aaomidi/tslink/pkg/logger"
 )
@@ -282,47 +283,20 @@ func CheckVersionForServices(versionStr string) error {
 		return fmt.Errorf("unknown Tailscale version, cannot verify Services support")
 	}
 
-	current, err := parseVersion(versionStr)
+	// Normalize version string (remove 'v' prefix if present)
+	versionStr = strings.TrimPrefix(versionStr, "v")
+
+	current, err := semver.NewVersion(versionStr)
 	if err != nil {
 		return fmt.Errorf("failed to parse Tailscale version %s: %w", versionStr, err)
 	}
 
-	minimum, _ := parseVersion(MinServiceVersion)
+	minimum, _ := semver.NewVersion(MinServiceVersion)
 
-	if compareVersions(current, minimum) < 0 {
+	if current.LessThan(minimum) {
 		return fmt.Errorf("tailscale %s does not support services (minimum: %s)",
 			versionStr, MinServiceVersion)
 	}
 
 	return nil
-}
-
-// parseVersion splits a version string into parts [major, minor, patch].
-func parseVersion(v string) ([]int, error) {
-	v = strings.TrimPrefix(v, "v")
-	parts := strings.Split(v, ".")
-	result := make([]int, 3)
-	for i := 0; i < len(parts) && i < 3; i++ {
-		// Handle versions like "1.86.0-pre" by stripping suffix
-		numStr := strings.Split(parts[i], "-")[0]
-		n, err := strconv.Atoi(numStr)
-		if err != nil {
-			return nil, fmt.Errorf("invalid version component %q", parts[i])
-		}
-		result[i] = n
-	}
-	return result, nil
-}
-
-// compareVersions returns -1 if a < b, 0 if a == b, 1 if a > b.
-func compareVersions(a, b []int) int {
-	for i := range 3 {
-		if a[i] < b[i] {
-			return -1
-		}
-		if a[i] > b[i] {
-			return 1
-		}
-	}
-	return 0
 }

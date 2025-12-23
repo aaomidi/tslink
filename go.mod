@@ -3,6 +3,7 @@ module github.com/aaomidi/tslink
 go 1.25.5
 
 require (
+	github.com/Masterminds/semver/v3 v3.4.0
 	github.com/docker/go-plugins-helpers v0.0.0-20240701071450-45e2431495c8
 	github.com/moby/moby/client v0.2.1
 	github.com/vishvananda/netlink v1.3.1
