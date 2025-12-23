@@ -3,6 +3,7 @@ package netutil
 import (
 	"errors"
 	"fmt"
+	"net"
 	"os/exec"
 	"runtime"
 	"sync"
@@ -228,19 +229,9 @@ func SetupContainerRouting(nsPath string, ifName string, containerIP string, gat
 	return nil
 }
 
-// parseIP parses an IP string.
-func parseIP(s string) []byte {
-	parts := make([]byte, 4)
-	var a, b, c, d int
-	n, _ := fmt.Sscanf(s, "%d.%d.%d.%d", &a, &b, &c, &d)
-	if n != 4 {
-		return nil
-	}
-	parts[0] = byte(a)
-	parts[1] = byte(b)
-	parts[2] = byte(c)
-	parts[3] = byte(d)
-	return parts
+// parseIP parses an IP string and returns it as a byte slice.
+func parseIP(s string) net.IP {
+	return net.ParseIP(s)
 }
 
 // chainName is the custom iptables chain for tslink forwarding rules.
