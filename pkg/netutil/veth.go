@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"runtime"
+	"strings"
 	"sync"
 	"syscall"
 
@@ -60,25 +61,18 @@ func CreateVethPair(baseName string) (string, string, error) {
 func MoveToNetNS(ifName string, nsPath string) error {
 	logger.Debug("MoveToNetNS: interface=%s nsPath=%s", ifName, nsPath)
 
-	// Validate the netns path exists and is accessible
-	fi, err := os.Lstat(nsPath)
-	if err != nil {
-		return fmt.Errorf("netns path %s: %w", nsPath, err)
-	}
-	logger.Debug("MoveToNetNS: path exists, mode=%s isSymlink=%v",
-		fi.Mode().String(), fi.Mode()&os.ModeSymlink != 0)
-
-	// If it's a symlink, resolve it
-	realPath := nsPath
-	if fi.Mode()&os.ModeSymlink != 0 {
-		realPath, err = os.Readlink(nsPath)
-		if err != nil {
-			return fmt.Errorf("failed to resolve symlink %s: %w", nsPath, err)
-		}
-		logger.Debug("MoveToNetNS: resolved symlink to %s", realPath)
+	// Try the given path first, then fallback to alternate path if needed
+	// (handles Alpine Linux where /var/run and /run are separate)
+	pathsToTry := []string{nsPath}
+	if strings.HasPrefix(nsPath, "/var/run/docker/netns/") {
+		alternatePath := strings.Replace(nsPath, "/var/run/docker/netns/", "/run/docker/netns/", 1)
+		pathsToTry = append(pathsToTry, alternatePath)
+	} else if strings.HasPrefix(nsPath, "/run/docker/netns/") {
+		alternatePath := strings.Replace(nsPath, "/run/docker/netns/", "/var/run/docker/netns/", 1)
+		pathsToTry = append(pathsToTry, alternatePath)
 	}
 
-	// Get the interface
+	// Get the interface once before trying paths
 	link, err := netlink.LinkByName(ifName)
 	if err != nil {
 		return fmt.Errorf("interface %s not found: %w", ifName, err)
@@ -86,41 +80,77 @@ func MoveToNetNS(ifName string, nsPath string) error {
 	logger.Debug("MoveToNetNS: found interface %s (index=%d, type=%s)",
 		ifName, link.Attrs().Index, link.Type())
 
-	// Open the network namespace
-	ns, err := netns.GetFromPath(realPath)
-	if err != nil {
-		return fmt.Errorf("failed to get netns from %s: %w", realPath, err)
-	}
-	defer ns.Close()
-	logger.Debug("MoveToNetNS: opened netns fd=%d", int(ns))
+	var lastErr error
+	for i, tryPath := range pathsToTry {
+		// Validate the netns path exists and is accessible
+		fi, err := os.Lstat(tryPath)
+		if err != nil {
+			lastErr = fmt.Errorf("netns path %s: %w", tryPath, err)
+			continue
+		}
+		logger.Debug("MoveToNetNS: path %s exists, mode=%s isSymlink=%v",
+			tryPath, fi.Mode().String(), fi.Mode()&os.ModeSymlink != 0)
 
-	// Verify it's actually a network namespace by checking the fd type
-	var stat unix.Stat_t
-	if err := unix.Fstat(int(ns), &stat); err != nil {
-		logger.Warn("MoveToNetNS: fstat on netns fd failed: %v", err)
-	} else {
-		logger.Debug("MoveToNetNS: netns fd stat: mode=%o", stat.Mode)
-	}
-
-	// Move the interface to the namespace
-	if err := netlink.LinkSetNsFd(link, int(ns)); err != nil {
-		// Log additional debug info on failure
-		logger.Error("MoveToNetNS: LinkSetNsFd failed: interface=%s fd=%d err=%v",
-			ifName, int(ns), err)
-
-		// Check if the interface is still in the current namespace
-		if _, checkErr := netlink.LinkByName(ifName); checkErr != nil {
-			logger.Debug("MoveToNetNS: interface no longer in current namespace after error")
-		} else {
-			logger.Debug("MoveToNetNS: interface still in current namespace")
+		// If it's a symlink, resolve it
+		realPath := tryPath
+		if fi.Mode()&os.ModeSymlink != 0 {
+			realPath, err = os.Readlink(tryPath)
+			if err != nil {
+				lastErr = fmt.Errorf("failed to resolve symlink %s: %w", tryPath, err)
+				continue
+			}
+			logger.Debug("MoveToNetNS: resolved symlink to %s", realPath)
 		}
 
-		return fmt.Errorf("failed to move %s to netns (fd=%d, path=%s): %w",
-			ifName, int(ns), realPath, err)
+		// Open the network namespace
+		ns, err := netns.GetFromPath(realPath)
+		if err != nil {
+			lastErr = fmt.Errorf("failed to get netns from %s: %w", realPath, err)
+			continue
+		}
+		logger.Debug("MoveToNetNS: opened netns fd=%d", int(ns))
+
+		// Verify it's actually a network namespace by checking the fd type
+		var stat unix.Stat_t
+		if err := unix.Fstat(int(ns), &stat); err != nil {
+			logger.Warn("MoveToNetNS: fstat on netns fd failed: %v", err)
+		} else {
+			logger.Debug("MoveToNetNS: netns fd stat: mode=%o", stat.Mode)
+		}
+
+		// Move the interface to the namespace
+		if err := netlink.LinkSetNsFd(link, int(ns)); err != nil {
+			ns.Close() // Clean up fd immediately on failure
+
+			// Log additional debug info on failure
+			logger.Error("MoveToNetNS: LinkSetNsFd failed: interface=%s fd=%d err=%v",
+				ifName, int(ns), err)
+
+			// Check if the interface is still in the current namespace
+			if _, checkErr := netlink.LinkByName(ifName); checkErr != nil {
+				logger.Debug("MoveToNetNS: interface no longer in current namespace after error")
+			} else {
+				logger.Debug("MoveToNetNS: interface still in current namespace")
+			}
+
+			lastErr = fmt.Errorf("failed to move %s to netns (fd=%d, path=%s): %w",
+				ifName, int(ns), realPath, err)
+			continue
+		}
+
+		// Success! Clean up and return
+		ns.Close()
+		if i > 0 {
+			logger.Warn("MoveToNetNS: WARNING - Docker passed %s but namespace was at %s. "+
+				"This may indicate /var/run is not symlinked to /run on your system. "+
+				"Consider running: ln -sf /run /var/run", nsPath, tryPath)
+		}
+		logger.Debug("Moved interface %s to netns %s", ifName, tryPath)
+		return nil
 	}
 
-	logger.Debug("Moved interface %s to netns %s", ifName, nsPath)
-	return nil
+	// All paths failed
+	return lastErr
 }
 
 // SetupInterfaceInNS sets up an interface inside a network namespace.
