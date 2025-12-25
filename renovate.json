@@ -3,5 +3,7 @@
   "extends": ["config:best-practices"],
   "labels": ["dependencies"],
   "schedule": ["before 9am every weekday"],
-  "timezone": "America/Los_Angeles"
+  "timezone": "America/Los_Angeles",
+  "dependencyDashboard": true,
+  "dependencyDashboardTitle": "Dependency Updates"
 }
