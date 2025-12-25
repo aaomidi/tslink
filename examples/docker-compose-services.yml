@@ -21,7 +21,7 @@ networks:
   tailnet:
     driver: ghcr.io/aaomidi/tslink:main-arm64
     driver_opts:
-      ts.authkey: ${TS_AUTHKEY}
+      tslink.authkey: ${TS_AUTHKEY}
 
 services:
   backend:
@@ -29,5 +29,5 @@ services:
     networks:
       - tailnet
     labels:
-      ts.service: "svc:my-app"
-      ts.serve.443: "https:80"  # HTTPS on 443 -> container port 80
+      tslink.service: "svc:my-app"
+      tslink.serve.443: "https:80"  # HTTPS on 443 -> container port 80

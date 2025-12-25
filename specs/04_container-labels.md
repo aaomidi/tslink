@@ -24,15 +24,15 @@ Container labels configure Tailscale behavior for individual containers. Labels 
 
 | Label | Required | Format | Description |
 |-------|----------|--------|-------------|
-| `ts.hostname` | No | string | Override Tailscale hostname (default: container name) |
-| `ts.tags` | No | `tag:name,tag:name` | Comma-separated ACL tags |
-| `ts.service` | No | `svc:name` | Service name to register as backend |
-| `ts.serve.<port>` | If service set | `<proto>:<target>[/<path>]` | Serve endpoint configuration |
+| `tslink.hostname` | No | string | Override Tailscale hostname (default: container name) |
+| `tslink.tags` | No | `tag:name,tag:name` | Comma-separated ACL tags |
+| `tslink.service` | No | `svc:name` | Service name to register as backend |
+| `tslink.serve.<port>` | If service set | `<proto>:<target>[/<path>]` | Serve endpoint configuration |
 
 ### Serve Endpoint Format
 
 ```
-ts.serve.<external-port> = <protocol>:<target-port>[/<path>]
+tslink.serve.<external-port> = <protocol>:<target-port>[/<path>]
 ```
 
 **Components:**
@@ -60,9 +60,9 @@ ts.serve.<external-port> = <protocol>:<target-port>[/<path>]
 
 ```yaml
 labels:
-  ts.hostname: "my-web"
-  ts.service: "svc:web"
-  ts.serve.80: "http:8080"
+  tslink.hostname: "my-web"
+  tslink.service: "svc:web"
+  tslink.serve.80: "http:8080"
 ```
 
 Accessible at: `http://web.tailnet.ts.net/`
@@ -71,9 +71,9 @@ Accessible at: `http://web.tailnet.ts.net/`
 
 ```yaml
 labels:
-  ts.hostname: "secure-web"
-  ts.service: "svc:web"
-  ts.serve.443: "https:80"
+  tslink.hostname: "secure-web"
+  tslink.service: "svc:web"
+  tslink.serve.443: "https:80"
 ```
 
 Accessible at: `https://web.tailnet.ts.net/`
@@ -84,34 +84,34 @@ Tailscale terminates TLS and reverse-proxies HTTP to container port 80.
 
 ```yaml
 labels:
-  ts.service: "svc:api"
-  ts.serve.443: "https:8080"      # Main API
-  ts.serve.9090: "http:9090"      # Metrics
+  tslink.service: "svc:api"
+  tslink.serve.443: "https:8080"      # Main API
+  tslink.serve.9090: "http:9090"      # Metrics
 ```
 
 #### Path-Based Routing (L7)
 
 ```yaml
 labels:
-  ts.service: "svc:monolith"
-  ts.serve.443: "https:3000/api"      # /api/* -> container:3000
-  ts.serve.8080: "http:4000/admin"    # /admin/* -> container:4000
+  tslink.service: "svc:monolith"
+  tslink.serve.443: "https:3000/api"      # /api/* -> container:3000
+  tslink.serve.8080: "http:4000/admin"    # /admin/* -> container:4000
 ```
 
 #### Database (TCP)
 
 ```yaml
 labels:
-  ts.service: "svc:database"
-  ts.serve.5432: "tcp:5432"
+  tslink.service: "svc:database"
+  tslink.serve.5432: "tcp:5432"
 ```
 
 #### Database with TLS
 
 ```yaml
 labels:
-  ts.service: "svc:secure-db"
-  ts.serve.5432: "tls-terminated-tcp:5432"
+  tslink.service: "svc:secure-db"
+  tslink.serve.5432: "tls-terminated-tcp:5432"
 ```
 
 Tailscale terminates TLS; traffic to container is plain TCP.
@@ -125,10 +125,10 @@ services:
     networks:
       - tailnet
     labels:
-      ts.hostname: "backend-1"
-      ts.tags: "tag:web,tag:prod"
-      ts.service: "svc:hello-world"
-      ts.serve.443: "https:80"
+      tslink.hostname: "backend-1"
+      tslink.tags: "tag:web,tag:prod"
+      tslink.service: "svc:hello-world"
+      tslink.serve.443: "https:80"
 ```
 
 ## Behavior
@@ -145,9 +145,9 @@ services:
 ### Service Configuration Flow
 
 1. Container starts and joins network
-2. Plugin reads `ts.*` labels
+2. Plugin reads `tslink.*` labels
 3. Tailscale connects with configured hostname and tags
-4. Each `ts.serve.<port>` endpoint is registered with the service
+4. Each `tslink.serve.<port>` endpoint is registered with the service
 
 ### Protocol Selection
 
@@ -167,14 +167,14 @@ Choose protocol based on your service type:
 | Mistake | Problem | Fix |
 |---------|---------|-----|
 | Using `tls-terminated-tcp` for web | Returns raw TCP, not HTTP | Use `https` instead |
-| Missing `ts.service` with `ts.serve.*` | Endpoints won't be configured | Add `ts.service` label |
+| Missing `tslink.service` with `tslink.serve.*` | Endpoints won't be configured | Add `tslink.service` label |
 | Using path with TCP protocol | Paths only work with L7 | Remove path or use `http`/`https` |
 
 ## Error Handling
 
 | Condition | Error Message | Recovery |
 |-----------|--------------|----------|
-| `ts.serve.*` without `ts.service` | `ts.service requires at least one ts.serve.<port> endpoint` | Add ts.service label |
+| `tslink.serve.*` without `tslink.service` | `tslink.service requires at least one tslink.serve.<port> endpoint` | Add tslink.service label |
 | Invalid protocol | `unsupported protocol: xyz` | Use http, https, tcp, tls-terminated-tcp, or tun |
 | Invalid port | `invalid external port "abc": must be numeric` | Use numeric port |
 | Path with L4 protocol | Path is silently ignored | Use http/https for path routing |
@@ -187,7 +187,7 @@ Choose protocol based on your service type:
 
 ## Future Enhancements
 
-1. **Wildcard paths** - Support `ts.serve.443: "https:80/*"` for catch-all routing
+1. **Wildcard paths** - Support `tslink.serve.443: "https:80/*"` for catch-all routing
 2. **Header injection** - Add custom headers via labels
 3. **Health check paths** - Configure health endpoints for service backends
 4. **Hot reload** - Support label changes without container restart

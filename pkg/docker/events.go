@@ -184,7 +184,7 @@ func WatchEvents(ctx context.Context, cache *ContainerCache, networkDriverName s
 	}
 }
 
-// parseContainerInfo extracts ts.* labels into structured ContainerInfo.
+// parseContainerInfo extracts tslink.* labels into structured ContainerInfo.
 func parseContainerInfo(name string, labels map[string]string) *core.ContainerInfo {
 	info := &core.ContainerInfo{
 		Name:   name,
@@ -192,15 +192,15 @@ func parseContainerInfo(name string, labels map[string]string) *core.ContainerIn
 		Direct: true, // Default: direct serve enabled
 	}
 
-	// ts.hostname - override Tailscale hostname
-	if v, ok := labels["ts.hostname"]; ok && v != "" {
+	// tslink.hostname - override Tailscale hostname
+	if v, ok := labels["tslink.hostname"]; ok && v != "" {
 		info.Hostname = v
 	} else {
 		info.Hostname = name
 	}
 
-	// ts.tags - comma-separated ACL tags (e.g., "tag:web,tag:prod")
-	if v, ok := labels["ts.tags"]; ok && v != "" {
+	// tslink.tags - comma-separated ACL tags (e.g., "tag:web,tag:prod")
+	if v, ok := labels["tslink.tags"]; ok && v != "" {
 		tags := strings.Split(v, ",")
 		for i, t := range tags {
 			tags[i] = strings.TrimSpace(t)
@@ -208,39 +208,39 @@ func parseContainerInfo(name string, labels map[string]string) *core.ContainerIn
 		info.Tags = tags
 	}
 
-	// ts.service - service name (e.g., "svc:hello-world")
-	if v, ok := labels["ts.service"]; ok && v != "" {
+	// tslink.service - service name (e.g., "svc:hello-world")
+	if v, ok := labels["tslink.service"]; ok && v != "" {
 		info.Service = v
 	}
 
-	// ts.direct - enable/disable direct machine serve (default: true)
-	// Set ts.direct=false to disable direct serve (only use service backend)
-	if v, ok := labels["ts.direct"]; ok {
+	// tslink.direct - enable/disable direct machine serve (default: true)
+	// Set tslink.direct=false to disable direct serve (only use service backend)
+	if v, ok := labels["tslink.direct"]; ok {
 		info.Direct = v != "false" && v != "0" && v != "no"
 	}
 
-	// Parse serve endpoints from ts.serve.<port> labels
+	// Parse serve endpoints from tslink.serve.<port> labels
 	info.Endpoints = parseServeEndpoints(labels)
 
 	return info
 }
 
-// parseServeEndpoints parses ts.serve.<port> labels into ServeEndpoint structs.
-// Format: ts.serve.<external-port> = <proto>:<target>[/<path>]
+// parseServeEndpoints parses tslink.serve.<port> labels into ServeEndpoint structs.
+// Format: tslink.serve.<external-port> = <proto>:<target>[/<path>]
 // Examples:
-//   - ts.serve.443=https:8080       → HTTPS on 443 → localhost:8080
-//   - ts.serve.80=http:3000/api     → HTTP on 80 → localhost:3000 at /api
-//   - ts.serve.5432=tcp             → TCP on 5432 → localhost:5432 (same port)
+//   - tslink.serve.443=https:8080       → HTTPS on 443 → localhost:8080
+//   - tslink.serve.80=http:3000/api     → HTTP on 80 → localhost:3000 at /api
+//   - tslink.serve.5432=tcp             → TCP on 5432 → localhost:5432 (same port)
 func parseServeEndpoints(labels map[string]string) []core.ServeEndpoint {
 	var endpoints []core.ServeEndpoint
 
 	for key, value := range labels {
-		if !strings.HasPrefix(key, "ts.serve.") {
+		if !strings.HasPrefix(key, "tslink.serve.") {
 			continue
 		}
 
 		// Extract external port from key
-		externalPort := strings.TrimPrefix(key, "ts.serve.")
+		externalPort := strings.TrimPrefix(key, "tslink.serve.")
 		if externalPort == "" {
 			continue
 		}

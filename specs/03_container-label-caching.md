@@ -51,10 +51,10 @@ When `Join()` is called:
 
 | Field | Source | Default if Missing |
 |-------|--------|-------------------|
-| Hostname | `ts.hostname` label or container name | Endpoint ID prefix |
-| Tags | `ts.tags` label | None |
-| Service | `ts.service` label | None |
-| Endpoints | `ts.serve.*` labels | None |
+| Hostname | `tslink.hostname` label or container name | Endpoint ID prefix |
+| Tags | `tslink.tags` label | None |
+| Service | `tslink.service` label | None |
+| Endpoints | `tslink.serve.*` labels | None |
 
 ### Cache Lifetime
 

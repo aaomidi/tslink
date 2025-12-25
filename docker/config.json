@@ -68,7 +68,7 @@
   "env": [
     {
       "name": "TS_AUTHKEY",
-      "description": "Tailscale auth key (can also use --opt ts.authkey when creating network)",
+      "description": "Tailscale auth key (can also use --opt tslink.authkey when creating network)",
       "settable": ["value"],
       "value": ""
     },

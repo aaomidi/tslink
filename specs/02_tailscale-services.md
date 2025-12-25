@@ -28,31 +28,31 @@ Container labels:
 
 | Label | Required | Description |
 |-------|----------|-------------|
-| `ts.hostname` | No | Override Tailscale hostname (default: container name) |
-| `ts.tags` | No | Comma-separated ACL tags (e.g., `tag:web,tag:prod`) |
-| `ts.service` | No | Service name to join (e.g., `svc:hello-world`) |
-| `ts.serve.<port>` | If `ts.service` set | Serve endpoint: `<proto>:<target>[/<path>]` |
+| `tslink.hostname` | No | Override Tailscale hostname (default: container name) |
+| `tslink.tags` | No | Comma-separated ACL tags (e.g., `tag:web,tag:prod`) |
+| `tslink.service` | No | Service name to join (e.g., `svc:hello-world`) |
+| `tslink.serve.<port>` | If `tslink.service` set | Serve endpoint: `<proto>:<target>[/<path>]` |
 
 ### Examples
 
 ```bash
 # Simple container with custom hostname
 docker run --network tailnet \
-  --label ts.hostname=my-web-server \
+  --label tslink.hostname=my-web-server \
   nginx:alpine
 
 # Container as HTTPS service backend
 docker run --network tailnet \
-  --label ts.service=svc:hello-world \
-  --label ts.serve.443=https:80 \
+  --label tslink.service=svc:hello-world \
+  --label tslink.serve.443=https:80 \
   nginx:alpine
 
 # Full configuration with tags
 docker run --network tailnet \
-  --label ts.hostname=web-1 \
-  --label ts.tags=tag:web-service,tag:prod \
-  --label ts.service=svc:hello-world \
-  --label ts.serve.443=https:80 \
+  --label tslink.hostname=web-1 \
+  --label tslink.tags=tag:web-service,tag:prod \
+  --label tslink.service=svc:hello-world \
+  --label tslink.serve.443=https:80 \
   nginx:alpine
 ```
 
@@ -64,8 +64,8 @@ services:
     networks:
       - tailnet
     labels:
-      ts.service: "svc:hello-world"
-      ts.serve.443: "https:80"
+      tslink.service: "svc:hello-world"
+      tslink.serve.443: "https:80"
     deploy:
       replicas: 3  # All replicas become service backends
 ```
@@ -90,13 +90,13 @@ Tailscale Services requires version 1.86.0 or later. The plugin only enforces th
 
 ### Tag-Based Authentication
 
-Tailscale Services requires tag-based authentication. The auth key used for the network must include appropriate tags. Tags specified in `ts.tags` are passed to `tailscale up --advertise-tags`.
+Tailscale Services requires tag-based authentication. The auth key used for the network must include appropriate tags. Tags specified in `tslink.tags` are passed to `tailscale up --advertise-tags`.
 
 ## Error Handling
 
 | Condition | Error Message | Recovery |
 |-----------|--------------|----------|
-| `ts.service` without `ts.serve.*` | `ts.service requires at least one ts.serve.<port> endpoint` | Add ts.serve.<port> label |
+| `tslink.service` without `tslink.serve.*` | `tslink.service requires at least one tslink.serve.<port> endpoint` | Add tslink.serve.<port> label |
 | Invalid port format | `invalid external port "abc": must be numeric` | Use numeric port |
 | Invalid protocol | `unsupported protocol: xyz` | Use http, https, tcp, tls-terminated-tcp, or tun |
 | Tailscale < 1.86.0 | `Tailscale 1.76.0 does not support Services (minimum: 1.86.0)` | Set TS_VERSION=1.86.0 or later |
@@ -105,7 +105,7 @@ Tailscale Services requires tag-based authentication. The auth key used for the 
 
 ## Security Considerations
 
-- **Tags are opt-in** - Only containers with `ts.tags` label advertise tags
+- **Tags are opt-in** - Only containers with `tslink.tags` label advertise tags
 - **Service pre-creation** - Services must exist in admin console, preventing accidental service creation
 - **Auth key scoping** - Recommend using auth keys scoped to specific tags
 

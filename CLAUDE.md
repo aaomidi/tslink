@@ -22,7 +22,7 @@ make reinstall
 
 # Test
 source .env
-docker network create --driver ghcr.io/aaomidi/tslink:latest --opt ts.authkey=$TS_AUTHKEY tailnet
+docker network create --driver ghcr.io/aaomidi/tslink:latest --opt tslink.authkey=$TS_AUTHKEY tailnet
 docker run --rm --network tailnet alpine sh -c "ip addr && ping -c 2 8.8.8.8"
 docker network rm tailnet
 ```

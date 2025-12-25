@@ -2,7 +2,7 @@ networks:
   tailnet:
     driver: ${PLUGIN_NAME:-ghcr.io/aaomidi/tslink}:${PLUGIN_TAG:-test}
     driver_opts:
-      ts.authkey: ${TS_AUTHKEY}
+      tslink.authkey: ${TS_AUTHKEY}
 
 services:
   server:
@@ -10,17 +10,17 @@ services:
     networks:
       - tailnet
     labels:
-      ts.hostname: "${SERVER_HOSTNAME:-tslink-server}"
-      ts.direct: "true"
-      ts.serve.9999: "tcp:9998"
-      ts.service: "svc:tslink-test"
+      tslink.hostname: "${SERVER_HOSTNAME:-tslink-server}"
+      tslink.direct: "true"
+      tslink.serve.9999: "tcp:9998"
+      tslink.service: "svc:tslink-test"
 
   client:
     build: ./client
     networks:
       - tailnet
     labels:
-      ts.hostname: "${CLIENT_HOSTNAME:-tslink-client}"
+      tslink.hostname: "${CLIENT_HOSTNAME:-tslink-client}"
     dns:
       - 100.100.100.100
     dns_search:

@@ -13,7 +13,7 @@ import (
 )
 
 // ServeEndpoint represents a single Tailscale serve configuration.
-// Configured via labels like: ts.serve.443=https:8080/api.
+// Configured via labels like: tslink.serve.443=https:8080/api.
 type ServeEndpoint struct {
 	Proto  string // http, https, tcp, tls-terminated-tcp, tun
 	Port   string // External port Tailscale exposes
@@ -48,11 +48,11 @@ type Endpoint struct {
 type ContainerInfo struct {
 	Name      string            // Container name (without leading /)
 	Labels    map[string]string // All container labels
-	Hostname  string            // Parsed ts.hostname label or container name
-	Tags      []string          // Parsed ts.tags label (comma-separated)
-	Service   string            // Parsed ts.service label (e.g., "svc:hello-world")
-	Endpoints []ServeEndpoint   // Parsed ts.serve.<port> labels
-	Direct    bool              // Enable direct machine serve (default: true, set ts.direct=false to disable)
+	Hostname  string            // Parsed tslink.hostname label or container name
+	Tags      []string          // Parsed tslink.tags label (comma-separated)
+	Service   string            // Parsed tslink.service label (e.g., "svc:hello-world")
+	Endpoints []ServeEndpoint   // Parsed tslink.serve.<port> labels
+	Direct    bool              // Enable direct machine serve (default: true, set tslink.direct=false to disable)
 }
 
 // NewEndpoint creates a new endpoint with the given configuration.
@@ -231,7 +231,7 @@ func (e *Endpoint) StartTailscale(info *ContainerInfo) error {
 
 	// Validate service configuration
 	if info.Service != "" && len(info.Endpoints) == 0 {
-		return fmt.Errorf("ts.service requires at least one ts.serve.<port> endpoint")
+		return fmt.Errorf("tslink.service requires at least one tslink.serve.<port> endpoint")
 	}
 
 	// Ensure Tailscale binaries are available (may download - blocking!)

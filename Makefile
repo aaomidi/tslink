@@ -70,7 +70,7 @@ ifndef TS_AUTHKEY
 	$(error TS_AUTHKEY is not set. Create .env file with TS_AUTHKEY=xxx or export TS_AUTHKEY=xxx)
 endif
 	docker network rm tsnet-test 2>/dev/null || true
-	docker network create --driver $(PLUGIN_NAME):$(PLUGIN_TAG) --opt ts.authkey=$(TS_AUTHKEY) tsnet-test
+	docker network create --driver $(PLUGIN_NAME):$(PLUGIN_TAG) --opt tslink.authkey=$(TS_AUTHKEY) tsnet-test
 
 # Remove test network
 test-network-rm:

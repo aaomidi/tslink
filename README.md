@@ -74,7 +74,7 @@ docker plugin ls
 # Replace :latest-amd64 with :latest-arm64 for ARM systems
 docker network create \
   --driver ghcr.io/aaomidi/tslink:latest-amd64 \
-  --opt ts.authkey=tskey-auth-xxxxx \
+  --opt tslink.authkey=tskey-auth-xxxxx \
   my-tailnet
 
 # Or set the auth key globally when installing the plugin
@@ -112,7 +112,7 @@ networks:
   tailnet:
     driver: ghcr.io/aaomidi/tslink:latest-amd64
     driver_opts:
-      ts.authkey: ${TS_AUTHKEY}
+      tslink.authkey: ${TS_AUTHKEY}
 
 services:
   api:
@@ -132,7 +132,7 @@ services:
 
 | Option | Description | Default |
 |--------|-------------|---------|
-| `ts.authkey` | Tailscale auth key | Required (or set via plugin env) |
+| `tslink.authkey` | Tailscale auth key | Required (or set via plugin env) |
 
 ### Container Labels
 
@@ -140,23 +140,23 @@ Configure per-container Tailscale settings using labels:
 
 | Label | Description | Example |
 |-------|-------------|---------|
-| `ts.hostname` | Tailscale hostname | `ts.hostname=my-api` |
-| `ts.tags` | ACL tags (comma-separated) | `ts.tags=tag:server,tag:prod` |
-| `ts.serve.<port>` | Expose port via Tailscale Serve | `ts.serve.443=https:8080` |
-| `ts.service` | Register as Tailscale Service backend | `ts.service=svc:my-api` |
-| `ts.direct` | Enable direct machine serve | `ts.direct=true` (default) |
+| `tslink.hostname` | Tailscale hostname | `tslink.hostname=my-api` |
+| `tslink.tags` | ACL tags (comma-separated) | `tslink.tags=tag:server,tag:prod` |
+| `tslink.serve.<port>` | Expose port via Tailscale Serve | `tslink.serve.443=https:8080` |
+| `tslink.service` | Register as Tailscale Service backend | `tslink.service=svc:my-api` |
+| `tslink.direct` | Enable direct machine serve | `tslink.direct=true` (default) |
 
 ```bash
 # Example: Container with custom hostname and tags
 docker run -d --network my-tailnet \
-  --label ts.hostname=my-api \
-  --label ts.tags=tag:server \
+  --label tslink.hostname=my-api \
+  --label tslink.tags=tag:server \
   nginx
 
 # Example: Expose HTTPS on port 443, forwarding to container port 8080
 docker run -d --network my-tailnet \
-  --label ts.hostname=web \
-  --label ts.serve.443=https:8080 \
+  --label tslink.hostname=web \
+  --label tslink.serve.443=https:8080 \
   my-web-app
 ```
 
