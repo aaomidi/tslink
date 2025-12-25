@@ -183,7 +183,7 @@ func (d *Driver) CreateNetwork(req *network.CreateNetworkRequest) error {
 		logger.Debug("Using default authkey from config: %s", redactKey(authKey))
 	}
 	if authKey == "" {
-		return fmt.Errorf("no Tailscale auth key provided: set TS_AUTHKEY env var or use --opt ts.authkey=xxx")
+		return fmt.Errorf("no Tailscale auth key provided: set TS_AUTHKEY env var or use --opt tslink.authkey=xxx")
 	}
 
 	net := &core.Network{
@@ -551,7 +551,7 @@ func (d *Driver) recoverEndpoint(
 		// Recover network from Docker info
 		authKey := d.config.AuthKey // Use default auth key
 		// Try to get auth key from network options
-		if opts, ok := networkResult.Network.Options["ts.authkey"]; ok {
+		if opts, ok := networkResult.Network.Options["tslink.authkey"]; ok {
 			authKey = opts
 		}
 		if authKey == "" {

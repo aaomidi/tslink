@@ -57,7 +57,7 @@ func ParseNetworkOptions(opts map[string]any) NetworkOptions {
 		}
 	}
 
-	if v, ok := genericOpts["ts.authkey"]; ok {
+	if v, ok := genericOpts["tslink.authkey"]; ok {
 		if s, ok := v.(string); ok {
 			options.AuthKey = s
 		}
@@ -70,7 +70,7 @@ func ParseNetworkOptions(opts map[string]any) NetworkOptions {
 func ParseEndpointOptions(opts map[string]any) EndpointOptions {
 	options := EndpointOptions{}
 
-	if v, ok := opts["ts.hostname"]; ok {
+	if v, ok := opts["tslink.hostname"]; ok {
 		if s, ok := v.(string); ok {
 			options.Hostname = s
 		}
