@@ -1,0 +1,33 @@
+networks:
+  tailnet:
+    driver: ${PLUGIN_NAME:-ghcr.io/aaomidi/tslink}:${PLUGIN_TAG:-test}
+    driver_opts:
+      ts.authkey: ${TS_AUTHKEY}
+
+services:
+  server:
+    build: ./server
+    networks:
+      - tailnet
+    labels:
+      ts.hostname: "${SERVER_HOSTNAME:-tslink-server}"
+      ts.direct: "true"
+      ts.serve.9999: "tcp:9998"
+      ts.service: "svc:tslink-test"
+
+  client:
+    build: ./client
+    networks:
+      - tailnet
+    labels:
+      ts.hostname: "${CLIENT_HOSTNAME:-tslink-client}"
+    dns:
+      - 100.100.100.100
+    dns_search:
+      - ${TAILNET_SUFFIX:-atlas-diminished.ts.net}
+    environment:
+      - SERVER_HOSTNAME=${SERVER_HOSTNAME:-tslink-server}
+      - STATIC_SERVICE=${STATIC_SERVICE:-tslink-test.atlas-diminished.ts.net}
+      - TAILNET_SUFFIX=${TAILNET_SUFFIX:-atlas-diminished.ts.net}
+    depends_on:
+      - server

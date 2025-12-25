@@ -2,6 +2,8 @@ package docker
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"strings"
 	"sync"
@@ -38,15 +40,14 @@ const NetworkDriverName = "ghcr.io/aaomidi/tslink"
 const watchdogInterval = 60 * time.Second
 
 // redactKey returns a redacted version of a key for safe logging.
-// Shows the prefix (e.g., "tskey-auth-") and first few chars, redacts the rest.
+// Shows length and a short hash to identify if the key changed.
 func redactKey(key string) string {
 	if key == "" {
 		return "(empty)"
 	}
-	if len(key) <= 16 {
-		return "(redacted)"
-	}
-	return key[:16] + "..."
+	hash := sha256.Sum256([]byte(key))
+	shortHash := hex.EncodeToString(hash[:4])
+	return fmt.Sprintf("(set, %d chars, hash=%s)", len(key), shortHash)
 }
 
 // NewDriver creates a new Docker network driver.
